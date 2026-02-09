@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Три-в-ряд — Рыцарский турнир</title>
   <style>
     :root{
@@ -11,15 +11,22 @@
       --panel:#0f1526cc;
       --gold:#d9b45a;
       --silver:#c9d2e3;
-      --danger:#ff5b6e;
-      --ok:#45e39b;
-      --tileRadius:14px;
-      --gap:8px;
+
+      /* Адаптив */
+      --gap: clamp(4px, 1.6vw, 8px);
+      --tileRadius: clamp(10px, 2.4vw, 14px);
+      --boardMax: min(96vw, 560px);
       --shadow: 0 10px 30px rgba(0,0,0,.35);
-      --boardMax: min(92vw, 520px);
     }
 
     *{ box-sizing:border-box; }
+
+    html, body{
+      width:100%;
+      max-width:100%;
+      overflow-x:hidden; /* критично: убираем горизонтальный скролл */
+    }
+
     body{
       margin:0;
       min-height:100svh;
@@ -30,28 +37,31 @@
         radial-gradient(900px 600px at 90% 15%, #3a2749 0%, transparent 55%),
         linear-gradient(180deg, var(--bg1), var(--bg2));
       display:flex;
-      align-items:center;
+      align-items:flex-start;
       justify-content:center;
-      padding:18px;
+      padding: 10px;
     }
 
     .app{
-      width:min(980px, 100%);
+      width: min(980px, 100%);
+      max-width: 100%;
       display:grid;
       grid-template-columns: 1fr;
-      gap:14px;
+      gap:10px;
     }
 
     header{
+      width:100%;
+      max-width:100%;
       background: var(--panel);
       border: 1px solid rgba(217,180,90,.22);
       box-shadow: var(--shadow);
-      border-radius: 18px;
-      padding: 14px 14px;
+      border-radius: 16px;
+      padding: 10px 10px;
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:12px;
+      gap:10px;
       backdrop-filter: blur(8px);
     }
 
@@ -60,15 +70,16 @@
       flex-direction:column;
       gap:3px;
       min-width: 0;
+      flex: 1 1 auto;
     }
     .title h1{
       margin:0;
-      font-size:16px;
-      letter-spacing:.4px;
+      font-size:14px;
+      letter-spacing:.3px;
       color: #f2e7c7;
       display:flex;
       align-items:center;
-      gap:10px;
+      gap:8px;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
@@ -76,6 +87,19 @@
     .title small{
       color: rgba(201,210,227,.85);
       font-size:12px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .controls{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      flex: 0 0 auto;
+      max-width: 100%;
     }
 
     .badge{
@@ -88,100 +112,91 @@
       background: rgba(10,14,26,.55);
       font-size:12px;
       white-space:nowrap;
+      max-width: 100%;
     }
     .badge strong{ color: var(--gold); font-weight:700; }
-
-    .controls{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-    }
 
     button{
       appearance:none;
       border:1px solid rgba(217,180,90,.28);
       background: rgba(10,14,26,.55);
       color:#f2e7c7;
-      padding:10px 12px;
+      padding:9px 10px;
       border-radius: 12px;
       cursor:pointer;
       box-shadow: 0 8px 18px rgba(0,0,0,.25);
       font-weight:600;
       transition: transform .08s ease, border-color .2s ease;
       touch-action: manipulation;
+      white-space: nowrap;
     }
     button:active{ transform: translateY(1px) scale(.99); }
     button:hover{ border-color: rgba(217,180,90,.5); }
 
     main{
+      width:100%;
+      max-width:100%;
       display:grid;
-      grid-template-columns: 1fr;
-      gap:14px;
+      grid-template-columns: 1fr; /* на мобиле всегда одна колонка */
+      gap:10px;
     }
 
     .panel{
+      width:100%;
+      max-width:100%;
       background: var(--panel);
       border: 1px solid rgba(217,180,90,.22);
       box-shadow: var(--shadow);
-      border-radius: 18px;
-      padding: 14px;
+      border-radius: 16px;
+      padding: 10px;
       backdrop-filter: blur(8px);
     }
 
     .boardWrap{
       display:flex;
-      gap:14px;
-      flex-wrap:wrap;
-      align-items:flex-start;
+      align-items:center;
       justify-content:center;
     }
 
     .board{
       width: var(--boardMax);
+      max-width: 100%;
       aspect-ratio: 1 / 1;
       display:grid;
-      grid-template-columns: repeat(8, 1fr);
+      grid-template-columns: repeat(8, minmax(0, 1fr)); /* критично: не даём колонкам раздувать ширину */
       gap: var(--gap);
-      padding: 12px;
-      border-radius: 22px;
+      padding: 10px;
+      border-radius: 18px;
       border: 1px solid rgba(217,180,90,.22);
       background:
         radial-gradient(600px 300px at 50% 20%, rgba(217,180,90,.06), transparent 60%),
         linear-gradient(180deg, rgba(5,8,16,.55), rgba(10,14,26,.65));
       position: relative;
       user-select:none;
-      touch-action: none;
+      touch-action: none; /* чтобы свайп работал без прокрутки */
     }
 
     .tile{
       border-radius: var(--tileRadius);
       border: 1px solid rgba(255,255,255,.10);
       background: rgba(255,255,255,.05);
-      display:flex;
-      align-items:center;
-      justify-content:center;
       position: relative;
       overflow:hidden;
       box-shadow: 0 8px 16px rgba(0,0,0,.20);
       transition: transform .12s ease, outline .12s ease, filter .12s ease;
+      min-width: 0; /* критично: не даём раздувать сетку */
+      min-height: 0;
     }
 
-    /* ВАЖНО: фон тайла — PNG из /tiles, центруем и масштабируем */
     .tile::before{
       content:"";
       position:absolute;
       inset:0;
-      opacity: 1;
       background: var(--skin);
       background-position: center;
       background-repeat: no-repeat;
-      background-size: contain; /* можно заменить на cover */
+      background-size: contain;
     }
-
-    /* Иконка скрыта — используем PNG */
-    .tile .icon{ display:none; }
 
     .tile.selected{
       outline: 3px solid rgba(217,180,90,.70);
@@ -195,10 +210,11 @@
     }
 
     .side{
-      width:min(360px, 100%);
+      width:100%;
+      max-width:100%;
       display:flex;
       flex-direction:column;
-      gap:12px;
+      gap:10px;
     }
 
     .statGrid{
@@ -211,6 +227,7 @@
       border-radius: 14px;
       border:1px solid rgba(255,255,255,.10);
       background: rgba(10,14,26,.35);
+      min-width:0;
     }
     .stat .k{
       font-size:12px;
@@ -218,18 +235,18 @@
       margin-bottom:6px;
     }
     .stat .v{
-      font-size:18px;
+      font-size:16px;
       font-weight:800;
       color:#f2e7c7;
       display:flex;
       align-items:center;
       gap:10px;
+      min-width:0;
     }
 
-    /* Мини-иконка цели справа: тоже PNG */
     .miniIcon{
-      width: 22px;
-      height: 22px;
+      width: 20px;
+      height: 20px;
       display:inline-block;
       border-radius: 6px;
       border:1px solid rgba(255,255,255,.15);
@@ -238,6 +255,7 @@
       background-repeat:no-repeat;
       background-size:contain;
       box-shadow: 0 6px 14px rgba(0,0,0,.25);
+      flex: 0 0 auto;
     }
 
     .progress{
@@ -259,6 +277,7 @@
       font-size:12px;
       line-height:1.45;
       color: rgba(201,210,227,.85);
+      word-break: break-word;
     }
     .rules b{ color:#f2e7c7; }
 
@@ -269,6 +288,7 @@
       gap:8px;
       align-items:flex-start;
       color: rgba(201,210,227,.8);
+      word-break: break-word;
     }
 
     .modal{
@@ -309,9 +329,25 @@
       flex-wrap:wrap;
     }
 
+    /* На очень узких экранах делаем статистику в одну колонку */
+    @media (max-width: 380px){
+      .statGrid{ grid-template-columns: 1fr; }
+      .title small{ display:none; }
+      .badge{ font-size:11px; padding:7px 9px; }
+      button{ font-size:12px; padding:8px 9px; }
+    }
+
+    /* На широких экранах можно вернуть две колонки (десктоп) */
     @media (min-width: 920px){
       main{ grid-template-columns: 1.25fr .75fr; align-items:start; }
       .boardWrap{ justify-content:flex-start; }
+      header{ padding: 14px 14px; border-radius: 18px; }
+      .title h1{ font-size:16px; }
+      .title small{ display:block; }
+      button{ padding:10px 12px; }
+      .panel{ padding:14px; border-radius: 18px; }
+      .miniIcon{ width:22px; height:22px; }
+      .stat .v{ font-size:18px; }
     }
   </style>
 </head>
@@ -321,7 +357,7 @@
     <header>
       <div class="title">
         <h1>⚔️ Три-в-ряд: Рыцарский турнир</h1>
-        <small> Комбо 3+ сгорают.</small>
+        <small>Свайп/клик: выбери тайл → соседний тайл для обмена. Комбо 3+ сгорают.</small>
       </div>
       <div class="controls">
         <span class="badge">
@@ -363,7 +399,7 @@
         </div>
 
         <div class="footerTip">
-          🖼️ <span>Автор: Даня. Веселой игры!</span>
+          🖼️ <span>Автор: <code>Даня.</code> Приятной <code>игры!</code>.</span>
         </div>
       </aside>
     </main>
@@ -385,7 +421,6 @@
   // =========================
   //  ТАЙЛЫ: PNG В ПАПКЕ /tiles
   // =========================
-  // Пример структуры репо:
   // /index.html
   // /tiles/sword.png
   // /tiles/shield.png
@@ -396,12 +431,12 @@
   //
   // ВАЖНО: регистр в названиях файлов важен на GitHub Pages.
   const tileSkins = {
-    sword:   { img: "tiles/sword.png",   label: "Призрак" },
-    shield:  { img: "tiles/shield.png",  label: "Конфета" },
-    helm:    { img: "tiles/helm.png",    label: "Портал" },
-    banner:  { img: "tiles/banner.png",  label: "Коса" },
-    ring:    { img: "tiles/ring.png",    label: "Тыквоголов" },
-    chalice: { img: "tiles/chalice.png", label: "Кость" },
+    sword:   { img: "tiles/sword.png",   label: "Меч" },
+    shield:  { img: "tiles/shield.png",  label: "Щит" },
+    helm:    { img: "tiles/helm.png",    label: "Шлем" },
+    banner:  { img: "tiles/banner.png",  label: "Знамя" },
+    ring:    { img: "tiles/ring.png",    label: "Кольцо" },
+    chalice: { img: "tiles/chalice.png", label: "Кубок" },
   };
 
   const N = 8;
@@ -439,6 +474,7 @@
   function setHUD(){
     movesLeftEl.textContent = String(movesLeft);
     clearedNeedEl.textContent = `${goalCleared} / ${goalNeed}`;
+
     const pct = Math.max(0, Math.min(1, goalCleared / goalNeed)) * 100;
     progressBarEl.style.width = pct.toFixed(1) + "%";
 
@@ -460,7 +496,6 @@
 
   function render(){
     boardEl.innerHTML = "";
-
     for(let r=0;r<N;r++){
       for(let c=0;c<N;c++){
         const type = grid[r][c];
@@ -469,14 +504,10 @@
         tile.dataset.r = r;
         tile.dataset.c = c;
         tile.dataset.type = type;
-
-        // PNG фон
         tile.style.setProperty("--skin", `url('${tileSkins[type].img}')`);
-
         if(selected && selected.r===r && selected.c===c){
           tile.classList.add("selected");
         }
-
         boardEl.appendChild(tile);
       }
     }
@@ -509,37 +540,33 @@
   function findMatches(){
     const marked = Array.from({length:N}, () => Array.from({length:N}, () => false));
 
+    // горизонтальные
     for(let r=0;r<N;r++){
       let runType = grid[r][0], runStart = 0;
       for(let c=1;c<=N;c++){
         const t = (c<N) ? grid[r][c] : null;
-        if(t===runType){
-          continue;
-        } else {
-          const len = c - runStart;
-          if(runType && len >= 3){
-            for(let k=runStart;k<c;k++) marked[r][k] = true;
-          }
-          runType = t;
-          runStart = c;
+        if(t===runType) continue;
+        const len = c - runStart;
+        if(runType && len >= 3){
+          for(let k=runStart;k<c;k++) marked[r][k] = true;
         }
+        runType = t;
+        runStart = c;
       }
     }
 
+    // вертикальные
     for(let c=0;c<N;c++){
       let runType = grid[0][c], runStart = 0;
       for(let r=1;r<=N;r++){
         const t = (r<N) ? grid[r][c] : null;
-        if(t===runType){
-          continue;
-        } else {
-          const len = r - runStart;
-          if(runType && len >= 3){
-            for(let k=runStart;k<r;k++) marked[k][c] = true;
-          }
-          runType = t;
-          runStart = r;
+        if(t===runType) continue;
+        const len = r - runStart;
+        if(runType && len >= 3){
+          for(let k=runStart;k<r;k++) marked[k][c] = true;
         }
+        runType = t;
+        runStart = r;
       }
     }
 
@@ -747,7 +774,7 @@
 
     (async () => {
       busy = true;
-      await resolveMatchesCascade(); // очистим стартовые совпадения без расхода ходов
+      await resolveMatchesCascade(); // убираем стартовые совпадения без расхода ходов
       busy = false;
       render();
     })();
