@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Три-в-ряд — Рыцарский турнир</title>
+
   <style>
     :root{
       --bg1:#0b0f1a;
@@ -11,181 +12,205 @@
       --panel:#0f1526cc;
       --gold:#d9b45a;
       --silver:#c9d2e3;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
 
-      /* Адаптив */
+      /* адаптивные размеры */
       --gap: clamp(4px, 1.6vw, 8px);
       --tileRadius: clamp(10px, 2.4vw, 14px);
-      --boardMax: min(96vw, 560px);
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
+
+      /* внутренние отступы */
+      --pagePad: 0px; /* на мобиле НЕ даём боковых паддингов, чтобы не переполняло */
+      --cardPad: 10px;
+      --boardPad: 10px;
     }
 
-    *{ box-sizing:border-box; }
+    * { box-sizing: border-box; }
 
     html, body{
-      width:100%;
-      max-width:100%;
-      overflow-x:hidden; /* критично: убираем горизонтальный скролл */
+      width: 100%;
+      max-width: 100%;
+      overflow-x: clip; /* лучше чем hidden в mobile safari */
     }
 
     body{
-      margin:0;
-      min-height:100svh;
+      margin: 0;
+      min-height: 100svh;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue";
       color: var(--silver);
       background:
         radial-gradient(1000px 600px at 10% 10%, #203057 0%, transparent 55%),
         radial-gradient(900px 600px at 90% 15%, #3a2749 0%, transparent 55%),
         linear-gradient(180deg, var(--bg1), var(--bg2));
-      display:flex;
-      align-items:flex-start;
-      justify-content:center;
-      padding: 10px;
+
+      /* важно: на мобиле не используем центрирование, чтобы не вылезало */
+      display: block;
+
+      /* safe-area для iPhone */
+      padding:
+        env(safe-area-inset-top)
+        env(safe-area-inset-right)
+        env(safe-area-inset-bottom)
+        env(safe-area-inset-left);
     }
 
     .app{
-      width: min(980px, 100%);
-      max-width: 100%;
-      display:grid;
+      width: 100%;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: var(--pagePad);
+      display: grid;
       grid-template-columns: 1fr;
-      gap:10px;
+      gap: 10px;
     }
 
     header{
-      width:100%;
-      max-width:100%;
+      width: 100%;
+      max-width: 100%;
       background: var(--panel);
       border: 1px solid rgba(217,180,90,.22);
       box-shadow: var(--shadow);
       border-radius: 16px;
-      padding: 10px 10px;
+      padding: 10px;
+      backdrop-filter: blur(8px);
+
       display:flex;
+      flex-wrap: wrap;            /* КЛЮЧ: не раздуваем ширину */
       align-items:center;
       justify-content:space-between;
-      gap:10px;
-      backdrop-filter: blur(8px);
+      gap: 8px;
+      overflow: hidden;           /* КЛЮЧ: обрезаем переполнение */
     }
 
     .title{
+      min-width: 0;               /* КЛЮЧ */
+      flex: 1 1 220px;
       display:flex;
       flex-direction:column;
-      gap:3px;
-      min-width: 0;
-      flex: 1 1 auto;
+      gap: 3px;
     }
+
     .title h1{
       margin:0;
-      font-size:14px;
+      font-size: 14px;
       letter-spacing:.3px;
       color: #f2e7c7;
-      display:flex;
-      align-items:center;
-      gap:8px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+
     .title small{
+      font-size: 12px;
       color: rgba(201,210,227,.85);
-      font-size:12px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .controls{
+      flex: 1 1 220px;
+      min-width: 0;
       display:flex;
-      gap:8px;
+      gap: 8px;
+      justify-content: flex-end;
       align-items:center;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-      flex: 0 0 auto;
-      max-width: 100%;
+      flex-wrap: wrap;            /* КЛЮЧ */
     }
 
     .badge{
       display:inline-flex;
       align-items:center;
-      gap:8px;
-      padding:8px 10px;
+      gap: 8px;
+      padding: 8px 10px;
       border-radius: 999px;
       border:1px solid rgba(217,180,90,.25);
       background: rgba(10,14,26,.55);
-      font-size:12px;
-      white-space:nowrap;
+      font-size: 12px;
       max-width: 100%;
+      min-width: 0;               /* КЛЮЧ */
+      overflow: hidden;           /* КЛЮЧ */
+      white-space: nowrap;
     }
-    .badge strong{ color: var(--gold); font-weight:700; }
+    .badge strong{
+      color: var(--gold);
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
     button{
-      appearance:none;
+      appearance: none;
       border:1px solid rgba(217,180,90,.28);
       background: rgba(10,14,26,.55);
       color:#f2e7c7;
-      padding:9px 10px;
+      padding: 9px 10px;
       border-radius: 12px;
       cursor:pointer;
       box-shadow: 0 8px 18px rgba(0,0,0,.25);
       font-weight:600;
-      transition: transform .08s ease, border-color .2s ease;
-      touch-action: manipulation;
       white-space: nowrap;
+      touch-action: manipulation;
     }
-    button:active{ transform: translateY(1px) scale(.99); }
-    button:hover{ border-color: rgba(217,180,90,.5); }
 
     main{
-      width:100%;
-      max-width:100%;
+      width: 100%;
+      max-width: 100%;
       display:grid;
-      grid-template-columns: 1fr; /* на мобиле всегда одна колонка */
-      gap:10px;
+      grid-template-columns: 1fr; /* мобила: одна колонка */
+      gap: 10px;
     }
 
     .panel{
-      width:100%;
-      max-width:100%;
+      width: 100%;
+      max-width: 100%;
       background: var(--panel);
       border: 1px solid rgba(217,180,90,.22);
       box-shadow: var(--shadow);
       border-radius: 16px;
-      padding: 10px;
+      padding: var(--cardPad);
       backdrop-filter: blur(8px);
+      overflow: hidden; /* КЛЮЧ: любой лишний пиксель режем */
     }
 
     .boardWrap{
       display:flex;
       align-items:center;
       justify-content:center;
+      padding: 0; /* чтобы не добавлять лишней ширины */
     }
 
     .board{
-      width: var(--boardMax);
-      max-width: 100%;
+      width: 100%;         /* КЛЮЧ: только 100% контейнера */
+      max-width: 560px;    /* ограничение для планшетов/ПК */
       aspect-ratio: 1 / 1;
+
       display:grid;
-      grid-template-columns: repeat(8, minmax(0, 1fr)); /* критично: не даём колонкам раздувать ширину */
+      grid-template-columns: repeat(8, minmax(0, 1fr)); /* КЛЮЧ */
       gap: var(--gap);
-      padding: 10px;
+
+      padding: var(--boardPad);
       border-radius: 18px;
       border: 1px solid rgba(217,180,90,.22);
+
       background:
         radial-gradient(600px 300px at 50% 20%, rgba(217,180,90,.06), transparent 60%),
         linear-gradient(180deg, rgba(5,8,16,.55), rgba(10,14,26,.65));
-      position: relative;
+
       user-select:none;
-      touch-action: none; /* чтобы свайп работал без прокрутки */
+      touch-action: none;
     }
 
     .tile{
+      position: relative;
+      overflow: hidden;
       border-radius: var(--tileRadius);
       border: 1px solid rgba(255,255,255,.10);
       background: rgba(255,255,255,.05);
-      position: relative;
-      overflow:hidden;
       box-shadow: 0 8px 16px rgba(0,0,0,.20);
-      transition: transform .12s ease, outline .12s ease, filter .12s ease;
-      min-width: 0; /* критично: не даём раздувать сетку */
-      min-height: 0;
+
+      min-width: 0;  /* КЛЮЧ */
+      min-height: 0; /* КЛЮЧ */
+      transform: translateZ(0); /* стабилизирует рендер в iOS */
     }
 
     .tile::before{
@@ -202,6 +227,7 @@
       outline: 3px solid rgba(217,180,90,.70);
       transform: translateY(-1px) scale(1.02);
     }
+
     .tile.clearing{
       animation: pop .18s ease-in forwards;
     }
@@ -210,38 +236,42 @@
     }
 
     .side{
-      width:100%;
-      max-width:100%;
+      width: 100%;
+      max-width: 100%;
       display:flex;
       flex-direction:column;
-      gap:10px;
+      gap: 10px;
     }
 
     .statGrid{
       display:grid;
       grid-template-columns: 1fr 1fr;
-      gap:10px;
+      gap: 10px;
     }
+
     .stat{
-      padding:10px;
+      padding: 10px;
       border-radius: 14px;
       border:1px solid rgba(255,255,255,.10);
       background: rgba(10,14,26,.35);
-      min-width:0;
+      min-width: 0;
+      overflow: hidden;
     }
+
     .stat .k{
-      font-size:12px;
+      font-size: 12px;
       color: rgba(201,210,227,.82);
-      margin-bottom:6px;
+      margin-bottom: 6px;
     }
+
     .stat .v{
-      font-size:16px;
-      font-weight:800;
+      font-size: 16px;
+      font-weight: 800;
       color:#f2e7c7;
       display:flex;
       align-items:center;
-      gap:10px;
-      min-width:0;
+      gap: 10px;
+      min-width: 0;
     }
 
     .miniIcon{
@@ -259,8 +289,8 @@
     }
 
     .progress{
-      margin-top:8px;
-      height:10px;
+      margin-top: 8px;
+      height: 10px;
       background: rgba(255,255,255,.08);
       border-radius: 999px;
       overflow:hidden;
@@ -274,23 +304,51 @@
     }
 
     .rules{
-      font-size:12px;
-      line-height:1.45;
+      font-size: 12px;
+      line-height: 1.45;
       color: rgba(201,210,227,.85);
       word-break: break-word;
     }
     .rules b{ color:#f2e7c7; }
 
     .footerTip{
-      font-size:12px;
+      font-size: 12px;
       opacity:.9;
       display:flex;
-      gap:8px;
+      gap: 8px;
       align-items:flex-start;
       color: rgba(201,210,227,.8);
       word-break: break-word;
     }
 
+    /* очень узкие экраны */
+    @media (max-width: 420px){
+      :root{
+        --cardPad: 8px;
+        --boardPad: 8px;
+      }
+      .title small{ display:none; }
+      .statGrid{ grid-template-columns: 1fr; } /* в одну колонку */
+    }
+
+    /* десктоп: две колонки */
+    @media (min-width: 920px){
+      body{ display:flex; justify-content:center; }
+      .app{ padding: 10px; }
+      main{ grid-template-columns: 1.25fr .75fr; align-items:start; }
+      .title h1{ font-size: 16px; }
+      .title small{ display:block; }
+      button{ padding:10px 12px; }
+      .panel{ padding: 14px; }
+      .miniIcon{ width: 22px; height: 22px; }
+      .stat .v{ font-size: 18px; }
+      :root{
+        --cardPad: 14px;
+        --boardPad: 10px;
+      }
+    }
+
+    /* модалка */
     .modal{
       position:fixed;
       inset:0;
@@ -327,27 +385,6 @@
       gap:10px;
       justify-content:flex-end;
       flex-wrap:wrap;
-    }
-
-    /* На очень узких экранах делаем статистику в одну колонку */
-    @media (max-width: 380px){
-      .statGrid{ grid-template-columns: 1fr; }
-      .title small{ display:none; }
-      .badge{ font-size:11px; padding:7px 9px; }
-      button{ font-size:12px; padding:8px 9px; }
-    }
-
-    /* На широких экранах можно вернуть две колонки (десктоп) */
-    @media (min-width: 920px){
-      main{ grid-template-columns: 1.25fr .75fr; align-items:start; }
-      .boardWrap{ justify-content:flex-start; }
-      header{ padding: 14px 14px; border-radius: 18px; }
-      .title h1{ font-size:16px; }
-      .title small{ display:block; }
-      button{ padding:10px 12px; }
-      .panel{ padding:14px; border-radius: 18px; }
-      .miniIcon{ width:22px; height:22px; }
-      .stat .v{ font-size:18px; }
     }
   </style>
 </head>
@@ -399,7 +436,7 @@
         </div>
 
         <div class="footerTip">
-          🖼️ <span>Автор: <code>Даня.</code> Приятной <code>игры!</code>.</span>
+          🖼️ <span> Автор: <code>Даня</code> Приятной <code>Игры!</code> </span>
         </div>
       </aside>
     </main>
@@ -421,15 +458,6 @@
   // =========================
   //  ТАЙЛЫ: PNG В ПАПКЕ /tiles
   // =========================
-  // /index.html
-  // /tiles/sword.png
-  // /tiles/shield.png
-  // /tiles/helm.png
-  // /tiles/banner.png
-  // /tiles/ring.png
-  // /tiles/chalice.png
-  //
-  // ВАЖНО: регистр в названиях файлов важен на GitHub Pages.
   const tileSkins = {
     sword:   { img: "tiles/sword.png",   label: "Меч" },
     shield:  { img: "tiles/shield.png",  label: "Щит" },
@@ -674,7 +702,7 @@
     busy = false;
   }
 
-  // Клик
+  // клик
   boardEl.addEventListener("click", (e) => {
     const tile = e.target.closest(".tile");
     if(!tile || busy || modalEl.classList.contains("show")) return;
@@ -706,7 +734,7 @@
     }
   });
 
-  // Свайп
+  // свайп
   let touchStart = null; // {r,c,x,y}
   boardEl.addEventListener("pointerdown", (e) => {
     const tile = e.target.closest(".tile");
@@ -774,15 +802,15 @@
 
     (async () => {
       busy = true;
-      await resolveMatchesCascade(); // убираем стартовые совпадения без расхода ходов
+      await resolveMatchesCascade(); // чистим стартовые совпадения без расхода ходов
       busy = false;
       render();
     })();
   }
 
   newGameBtn.addEventListener("click", startNewGame);
-  closeModalBtn.addEventListener("click", hideModal);
-  restartBtn.addEventListener("click", startNewGame);
+  closeModalBtn?.addEventListener("click", hideModal);
+  restartBtn?.addEventListener("click", startNewGame);
 
   startNewGame();
 })();
