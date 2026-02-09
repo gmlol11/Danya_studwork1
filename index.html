@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Три-в-ряд — Рыцарский турнир</title>
+  <style>
+    :root{
+      --bg1:#0b0f1a;
+      --bg2:#141a2a;
+      --panel:#0f1526cc;
+      --gold:#d9b45a;
+      --silver:#c9d2e3;
+      --danger:#ff5b6e;
+      --ok:#45e39b;
+      --tileRadius:14px;
+      --gap:8px;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --boardMax: min(92vw, 520px);
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      min-height:100svh;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue";
+      color: var(--silver);
+      background:
+        radial-gradient(1000px 600px at 10% 10%, #203057 0%, transparent 55%),
+        radial-gradient(900px 600px at 90% 15%, #3a2749 0%, transparent 55%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+
+    .app{
+      width:min(980px, 100%);
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:14px;
+    }
+
+    header{
+      background: var(--panel);
+      border: 1px solid rgba(217,180,90,.22);
+      box-shadow: var(--shadow);
+      border-radius: 18px;
+      padding: 14px 14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      backdrop-filter: blur(8px);
+    }
+
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+      min-width: 0;
+    }
+    .title h1{
+      margin:0;
+      font-size:16px;
+      letter-spacing:.4px;
+      color: #f2e7c7;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .title small{
+      color: rgba(201,210,227,.85);
+      font-size:12px;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius: 999px;
+      border:1px solid rgba(217,180,90,.25);
+      background: rgba(10,14,26,.55);
+      font-size:12px;
+      white-space:nowrap;
+    }
+    .badge strong{ color: var(--gold); font-weight:700; }
+
+    .controls{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    button{
+      appearance:none;
+      border:1px solid rgba(217,180,90,.28);
+      background: rgba(10,14,26,.55);
+      color:#f2e7c7;
+      padding:10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      box-shadow: 0 8px 18px rgba(0,0,0,.25);
+      font-weight:600;
+      transition: transform .08s ease, border-color .2s ease;
+      touch-action: manipulation;
+    }
+    button:active{ transform: translateY(1px) scale(.99); }
+    button:hover{ border-color: rgba(217,180,90,.5); }
+
+    main{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:14px;
+    }
+
+    .panel{
+      background: var(--panel);
+      border: 1px solid rgba(217,180,90,.22);
+      box-shadow: var(--shadow);
+      border-radius: 18px;
+      padding: 14px;
+      backdrop-filter: blur(8px);
+    }
+
+    .boardWrap{
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+      align-items:flex-start;
+      justify-content:center;
+    }
+
+    .board{
+      width: var(--boardMax);
+      aspect-ratio: 1 / 1;
+      display:grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: var(--gap);
+      padding: 12px;
+      border-radius: 22px;
+      border: 1px solid rgba(217,180,90,.22);
+      background:
+        radial-gradient(600px 300px at 50% 20%, rgba(217,180,90,.06), transparent 60%),
+        linear-gradient(180deg, rgba(5,8,16,.55), rgba(10,14,26,.65));
+      position: relative;
+      user-select:none;
+      touch-action: none;
+    }
+
+    .tile{
+      border-radius: var(--tileRadius);
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position: relative;
+      overflow:hidden;
+      box-shadow: 0 8px 16px rgba(0,0,0,.20);
+      transition: transform .12s ease, outline .12s ease, filter .12s ease;
+    }
+
+    /* ВАЖНО: фон тайла — PNG из /tiles, центруем и масштабируем */
+    .tile::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      opacity: 1;
+      background: var(--skin);
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: contain; /* можно заменить на cover */
+    }
+
+    /* Иконка скрыта — используем PNG */
+    .tile .icon{ display:none; }
+
+    .tile.selected{
+      outline: 3px solid rgba(217,180,90,.70);
+      transform: translateY(-1px) scale(1.02);
+    }
+    .tile.clearing{
+      animation: pop .18s ease-in forwards;
+    }
+    @keyframes pop{
+      to{ transform: scale(.85); filter: brightness(1.35); opacity: .0; }
+    }
+
+    .side{
+      width:min(360px, 100%);
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .statGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    .stat{
+      padding:10px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(10,14,26,.35);
+    }
+    .stat .k{
+      font-size:12px;
+      color: rgba(201,210,227,.82);
+      margin-bottom:6px;
+    }
+    .stat .v{
+      font-size:18px;
+      font-weight:800;
+      color:#f2e7c7;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    /* Мини-иконка цели справа: тоже PNG */
+    .miniIcon{
+      width: 22px;
+      height: 22px;
+      display:inline-block;
+      border-radius: 6px;
+      border:1px solid rgba(255,255,255,.15);
+      background: var(--miniSkin);
+      background-position:center;
+      background-repeat:no-repeat;
+      background-size:contain;
+      box-shadow: 0 6px 14px rgba(0,0,0,.25);
+    }
+
+    .progress{
+      margin-top:8px;
+      height:10px;
+      background: rgba(255,255,255,.08);
+      border-radius: 999px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .progress > div{
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, rgba(69,227,155,.9), rgba(217,180,90,.9));
+      transition: width .25s ease;
+    }
+
+    .rules{
+      font-size:12px;
+      line-height:1.45;
+      color: rgba(201,210,227,.85);
+    }
+    .rules b{ color:#f2e7c7; }
+
+    .footerTip{
+      font-size:12px;
+      opacity:.9;
+      display:flex;
+      gap:8px;
+      align-items:flex-start;
+      color: rgba(201,210,227,.8);
+    }
+
+    .modal{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(6px);
+      z-index:50;
+    }
+    .modal.show{ display:flex; }
+    .modalCard{
+      width:min(520px, 100%);
+      border-radius: 18px;
+      border:1px solid rgba(217,180,90,.25);
+      background: rgba(15,21,38,.92);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+    .modalCard h2{
+      margin:0 0 6px 0;
+      color:#f2e7c7;
+      font-size:18px;
+    }
+    .modalCard p{
+      margin:0 0 12px 0;
+      color: rgba(201,210,227,.9);
+      font-size:13px;
+      line-height:1.45;
+    }
+    .modalActions{
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+    }
+
+    @media (min-width: 920px){
+      main{ grid-template-columns: 1.25fr .75fr; align-items:start; }
+      .boardWrap{ justify-content:flex-start; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header>
+      <div class="title">
+        <h1>⚔️ Три-в-ряд: Рыцарский турнир</h1>
+        <small> Комбо 3+ сгорают.</small>
+      </div>
+      <div class="controls">
+        <span class="badge">
+          Цель:
+          <span class="miniIcon" id="goalIconMini"></span>
+          <strong id="goalText">—</strong>
+        </span>
+        <button id="newGameBtn">Новая партия</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="panel boardWrap">
+        <div class="board" id="board" aria-label="Игровое поле 8 на 8"></div>
+      </section>
+
+      <aside class="panel side">
+        <div class="statGrid">
+          <div class="stat">
+            <div class="k">Ходов осталось</div>
+            <div class="v"><span>🎯</span><span id="movesLeft">0</span></div>
+          </div>
+          <div class="stat">
+            <div class="k">Сожжено нужных</div>
+            <div class="v">
+              <span class="miniIcon" id="goalMiniIcon"></span>
+              <span id="clearedNeed">0</span>
+            </div>
+            <div class="progress" title="Прогресс цели"><div id="progressBar"></div></div>
+          </div>
+        </div>
+
+        <div class="rules">
+          <b>Правила турнира</b><br/>
+          • Меняй местами <b>соседние</b> тайлы.<br/>
+          • Если после обмена получается <b>ряд/колонка 3+</b> — тайлы сгорают.<br/>
+          • Тайлы падают вниз, сверху приходят новые.<br/>
+          • В начале партии выбирается, <b>какой тайл</b> нужно собрать и <b>сколько</b> за <b>ограничение ходов</b>.
+        </div>
+
+        <div class="footerTip">
+          🖼️ <span>Автор: Даня. Веселой игры!</span>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="modalCard">
+      <h2 id="modalTitle">Конец партии</h2>
+      <p id="modalText">—</p>
+      <div class="modalActions">
+        <button id="closeModalBtn">Закрыть</button>
+        <button id="restartBtn">Сыграть ещё</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // =========================
+  //  ТАЙЛЫ: PNG В ПАПКЕ /tiles
+  // =========================
+  // Пример структуры репо:
+  // /index.html
+  // /tiles/sword.png
+  // /tiles/shield.png
+  // /tiles/helm.png
+  // /tiles/banner.png
+  // /tiles/ring.png
+  // /tiles/chalice.png
+  //
+  // ВАЖНО: регистр в названиях файлов важен на GitHub Pages.
+  const tileSkins = {
+    sword:   { img: "tiles/sword.png",   label: "Призрак" },
+    shield:  { img: "tiles/shield.png",  label: "Конфета" },
+    helm:    { img: "tiles/helm.png",    label: "Портал" },
+    banner:  { img: "tiles/banner.png",  label: "Коса" },
+    ring:    { img: "tiles/ring.png",    label: "Тыквоголов" },
+    chalice: { img: "tiles/chalice.png", label: "Кость" },
+  };
+
+  const N = 8;
+  const TYPES = Object.keys(tileSkins);
+  const MOVE_LIMIT_RANGE = [14, 22];
+  const GOAL_RANGE = [14, 26];
+
+  const boardEl = document.getElementById("board");
+  const movesLeftEl = document.getElementById("movesLeft");
+  const clearedNeedEl = document.getElementById("clearedNeed");
+  const progressBarEl = document.getElementById("progressBar");
+  const goalTextEl = document.getElementById("goalText");
+  const goalIconMiniEl = document.getElementById("goalIconMini");
+  const goalMiniIconEl = document.getElementById("goalMiniIcon");
+  const newGameBtn = document.getElementById("newGameBtn");
+
+  const modalEl = document.getElementById("modal");
+  const modalTitleEl = document.getElementById("modalTitle");
+  const modalTextEl = document.getElementById("modalText");
+  const closeModalBtn = document.getElementById("closeModalBtn");
+  const restartBtn = document.getElementById("restartBtn");
+
+  let grid = [];
+  let selected = null;
+  let busy = false;
+  let movesLeft = 0;
+
+  let goalType = null;
+  let goalNeed = 0;
+  let goalCleared = 0;
+
+  const randInt = (a,b) => Math.floor(Math.random() * (b - a + 1)) + a;
+  const inBounds = (r,c) => r>=0 && r<N && c>=0 && c<N;
+
+  function setHUD(){
+    movesLeftEl.textContent = String(movesLeft);
+    clearedNeedEl.textContent = `${goalCleared} / ${goalNeed}`;
+    const pct = Math.max(0, Math.min(1, goalCleared / goalNeed)) * 100;
+    progressBarEl.style.width = pct.toFixed(1) + "%";
+
+    const goalSkin = `url('${tileSkins[goalType].img}')`;
+    goalIconMiniEl.style.setProperty("--miniSkin", goalSkin);
+    goalMiniIconEl.style.setProperty("--miniSkin", goalSkin);
+
+    goalTextEl.textContent = `${tileSkins[goalType].label}: ${goalNeed} за ${movesLeft} ходов`;
+  }
+
+  function showModal(title, text){
+    modalTitleEl.textContent = title;
+    modalTextEl.textContent = text;
+    modalEl.classList.add("show");
+  }
+  function hideModal(){
+    modalEl.classList.remove("show");
+  }
+
+  function render(){
+    boardEl.innerHTML = "";
+
+    for(let r=0;r<N;r++){
+      for(let c=0;c<N;c++){
+        const type = grid[r][c];
+        const tile = document.createElement("div");
+        tile.className = "tile";
+        tile.dataset.r = r;
+        tile.dataset.c = c;
+        tile.dataset.type = type;
+
+        // PNG фон
+        tile.style.setProperty("--skin", `url('${tileSkins[type].img}')`);
+
+        if(selected && selected.r===r && selected.c===c){
+          tile.classList.add("selected");
+        }
+
+        boardEl.appendChild(tile);
+      }
+    }
+  }
+
+  function getTileEl(r,c){
+    return boardEl.querySelector(`.tile[data-r="${r}"][data-c="${c}"]`);
+  }
+
+  function randomTypeAvoidingImmediateMatch(r,c){
+    const tries = 25;
+    for(let t=0;t<tries;t++){
+      const type = TYPES[randInt(0, TYPES.length-1)];
+      if(c>=2 && grid[r][c-1]===type && grid[r][c-2]===type) continue;
+      if(r>=2 && grid[r-1][c]===type && grid[r-2][c]===type) continue;
+      return type;
+    }
+    return TYPES[randInt(0, TYPES.length-1)];
+  }
+
+  function newEmptyGrid(){
+    grid = Array.from({length:N}, () => Array.from({length:N}, () => null));
+    for(let r=0;r<N;r++){
+      for(let c=0;c<N;c++){
+        grid[r][c] = randomTypeAvoidingImmediateMatch(r,c);
+      }
+    }
+  }
+
+  function findMatches(){
+    const marked = Array.from({length:N}, () => Array.from({length:N}, () => false));
+
+    for(let r=0;r<N;r++){
+      let runType = grid[r][0], runStart = 0;
+      for(let c=1;c<=N;c++){
+        const t = (c<N) ? grid[r][c] : null;
+        if(t===runType){
+          continue;
+        } else {
+          const len = c - runStart;
+          if(runType && len >= 3){
+            for(let k=runStart;k<c;k++) marked[r][k] = true;
+          }
+          runType = t;
+          runStart = c;
+        }
+      }
+    }
+
+    for(let c=0;c<N;c++){
+      let runType = grid[0][c], runStart = 0;
+      for(let r=1;r<=N;r++){
+        const t = (r<N) ? grid[r][c] : null;
+        if(t===runType){
+          continue;
+        } else {
+          const len = r - runStart;
+          if(runType && len >= 3){
+            for(let k=runStart;k<r;k++) marked[k][c] = true;
+          }
+          runType = t;
+          runStart = r;
+        }
+      }
+    }
+
+    const toClear = [];
+    for(let r=0;r<N;r++){
+      for(let c=0;c<N;c++){
+        if(marked[r][c]) toClear.push({r,c, type:grid[r][c]});
+      }
+    }
+    return { toClear };
+  }
+
+  function applyGravityAndRefill(){
+    for(let c=0;c<N;c++){
+      const col = [];
+      for(let r=N-1;r>=0;r--){
+        if(grid[r][c] !== null) col.push(grid[r][c]);
+      }
+      while(col.length < N){
+        col.push(TYPES[randInt(0, TYPES.length-1)]);
+      }
+      for(let r=N-1, i=0; r>=0; r--, i++){
+        grid[r][c] = col[i];
+      }
+    }
+  }
+
+  async function resolveMatchesCascade(){
+    while(true){
+      const { toClear } = findMatches();
+      if(toClear.length === 0) break;
+
+      for(const cell of toClear){
+        const el = getTileEl(cell.r, cell.c);
+        if(el) el.classList.add("clearing");
+      }
+
+      for(const cell of toClear){
+        if(cell.type === goalType) goalCleared++;
+      }
+      setHUD();
+
+      await new Promise(res => setTimeout(res, 180));
+
+      for(const cell of toClear){
+        grid[cell.r][cell.c] = null;
+      }
+
+      applyGravityAndRefill();
+      render();
+    }
+  }
+
+  function areNeighbors(a,b){
+    const dr = Math.abs(a.r - b.r);
+    const dc = Math.abs(a.c - b.c);
+    return (dr + dc) === 1;
+  }
+
+  function swap(a,b){
+    const tmp = grid[a.r][a.c];
+    grid[a.r][a.c] = grid[b.r][b.c];
+    grid[b.r][b.c] = tmp;
+  }
+
+  function checkEnd(){
+    if(goalCleared >= goalNeed){
+      showModal("🏆 Победа на турнире!",
+        `Цель выполнена: ${tileSkins[goalType].label} — ${goalCleared}/${goalNeed}.`);
+      return true;
+    }
+    if(movesLeft <= 0){
+      showModal("🪦 Поражение",
+        `Ходы закончились. Цель: ${tileSkins[goalType].label} — ${goalCleared}/${goalNeed}.`);
+      return true;
+    }
+    return false;
+  }
+
+  async function tryMove(a,b){
+    if(busy) return;
+    busy = true;
+
+    swap(a,b);
+    render();
+
+    const { toClear } = findMatches();
+    if(toClear.length === 0){
+      await new Promise(res => setTimeout(res, 90));
+      swap(a,b);
+      render();
+      busy = false;
+      return;
+    }
+
+    movesLeft--;
+    setHUD();
+
+    await resolveMatchesCascade();
+
+    selected = null;
+    render();
+
+    checkEnd();
+    busy = false;
+  }
+
+  // Клик
+  boardEl.addEventListener("click", (e) => {
+    const tile = e.target.closest(".tile");
+    if(!tile || busy || modalEl.classList.contains("show")) return;
+
+    const r = Number(tile.dataset.r);
+    const c = Number(tile.dataset.c);
+
+    if(!selected){
+      selected = {r,c};
+      render();
+      return;
+    }
+
+    const next = {r,c};
+    if(selected.r === next.r && selected.c === next.c){
+      selected = null;
+      render();
+      return;
+    }
+
+    if(areNeighbors(selected, next)){
+      const a = selected;
+      selected = null;
+      render();
+      tryMove(a, next);
+    } else {
+      selected = next;
+      render();
+    }
+  });
+
+  // Свайп
+  let touchStart = null; // {r,c,x,y}
+  boardEl.addEventListener("pointerdown", (e) => {
+    const tile = e.target.closest(".tile");
+    if(!tile || busy || modalEl.classList.contains("show")) return;
+
+    boardEl.setPointerCapture?.(e.pointerId);
+
+    touchStart = {
+      r: Number(tile.dataset.r),
+      c: Number(tile.dataset.c),
+      x: e.clientX,
+      y: e.clientY
+    };
+
+    selected = { r: touchStart.r, c: touchStart.c };
+    render();
+  });
+
+  boardEl.addEventListener("pointermove", (e) => {
+    if(!touchStart || busy) return;
+    const dx = e.clientX - touchStart.x;
+    const dy = e.clientY - touchStart.y;
+
+    const TH = 18;
+    if(Math.hypot(dx,dy) < TH) return;
+
+    let dr = 0, dc = 0;
+    if(Math.abs(dx) > Math.abs(dy)){
+      dc = dx > 0 ? 1 : -1;
+    } else {
+      dr = dy > 0 ? 1 : -1;
+    }
+
+    const a = { r: touchStart.r, c: touchStart.c };
+    const b = { r: a.r + dr, c: a.c + dc };
+    touchStart = null;
+
+    if(inBounds(b.r, b.c)){
+      selected = null;
+      render();
+      tryMove(a,b);
+    } else {
+      selected = null;
+      render();
+    }
+  });
+
+  window.addEventListener("pointerup", () => {
+    touchStart = null;
+  });
+
+  function startNewGame(){
+    hideModal();
+    selected = null;
+    busy = false;
+
+    goalType = TYPES[randInt(0, TYPES.length-1)];
+    goalNeed = randInt(GOAL_RANGE[0], GOAL_RANGE[1]);
+    movesLeft = randInt(MOVE_LIMIT_RANGE[0], MOVE_LIMIT_RANGE[1]);
+    goalCleared = 0;
+
+    newEmptyGrid();
+    render();
+    setHUD();
+
+    (async () => {
+      busy = true;
+      await resolveMatchesCascade(); // очистим стартовые совпадения без расхода ходов
+      busy = false;
+      render();
+    })();
+  }
+
+  newGameBtn.addEventListener("click", startNewGame);
+  closeModalBtn.addEventListener("click", hideModal);
+  restartBtn.addEventListener("click", startNewGame);
+
+  startNewGame();
+})();
+</script>
+</body>
+</html>
